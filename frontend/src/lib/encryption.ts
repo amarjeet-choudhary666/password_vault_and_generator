@@ -16,9 +16,29 @@ export class EncryptionService {
   }
 
   static decrypt(encryptedData: string, password: string, salt: string): string {
-    const key = this.deriveKey(password, salt);
-    const decrypted = CryptoJS.AES.decrypt(encryptedData, key);
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    try {
+      if (!encryptedData || !password || !salt) {
+        throw new Error('Missing required parameters for decryption');
+      }
+      
+      const key = this.deriveKey(password, salt);
+      const decrypted = CryptoJS.AES.decrypt(encryptedData, key);
+      
+      if (!decrypted || !decrypted.words || decrypted.words.length === 0) {
+        throw new Error('Decryption failed - invalid password or corrupted data');
+      }
+      
+      const result = decrypted.toString(CryptoJS.enc.Utf8);
+      
+      if (!result) {
+        throw new Error('Decryption resulted in empty string - invalid password');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Decryption error:', error);
+      throw new Error(`Decryption failed: ${error.message}`);
+    }
   }
 
   static encryptVaultItem(item: any, masterPassword: string, salt: string) {
@@ -34,7 +54,14 @@ export class EncryptionService {
 
   static decryptVaultItem(encryptedItem: any, masterPassword: string, salt: string) {
     try {
-      return {
+      console.log('Decrypting vault item:', encryptedItem._id);
+      console.log('Item structure:', Object.keys(encryptedItem));
+      
+      if (!encryptedItem.title || !encryptedItem.username || !encryptedItem.password) {
+        throw new Error('Missing required encrypted fields in vault item');
+      }
+      
+      const decrypted = {
         ...encryptedItem,
         title: this.decrypt(encryptedItem.title, masterPassword, salt),
         username: this.decrypt(encryptedItem.username, masterPassword, salt),
@@ -42,9 +69,12 @@ export class EncryptionService {
         url: encryptedItem.url ? this.decrypt(encryptedItem.url, masterPassword, salt) : '',
         notes: encryptedItem.notes ? this.decrypt(encryptedItem.notes, masterPassword, salt) : '',
       };
+      
+      console.log('Successfully decrypted item:', decrypted._id);
+      return decrypted;
     } catch (error) {
-      console.error('Decryption failed:', error);
-      throw new Error('Failed to decrypt vault item');
+      console.error('Decryption failed for item:', encryptedItem._id, error);
+      throw new Error(`Failed to decrypt vault item ${encryptedItem._id}: ${error.message}`);
     }
   }
 }

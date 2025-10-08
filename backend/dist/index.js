@@ -7,13 +7,23 @@ const app_1 = require("./app");
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = require("./db");
 dotenv_1.default.config();
-(0, db_1.connectDB)(process.env.MONGO_URI)
-    .then(() => {
-    app_1.app.listen(process.env.PORT || 8000, () => {
-        console.log(`server is running on port ${process.env.PORT || 8000}`);
-    });
-})
-    .catch((error) => {
-    console.log("failed to connect server", error);
+// Start server first, then connect to DB
+const PORT = process.env.PORT || 8000;
+app_1.app.listen(PORT, () => {
+    console.log(`✅ Server is running on port ${PORT}`);
+    // Connect to database after server starts
+    if (process.env.MONGO_URI) {
+        (0, db_1.connectDB)(process.env.MONGO_URI)
+            .then(() => {
+            console.log("✅ Database connected successfully");
+        })
+            .catch((error) => {
+            console.log("❌ Database connection failed:", error.message);
+            console.log("⚠️  Server running without database connection");
+        });
+    }
+    else {
+        console.log("⚠️  No MONGO_URI found, running without database");
+    }
 });
 //# sourceMappingURL=index.js.map

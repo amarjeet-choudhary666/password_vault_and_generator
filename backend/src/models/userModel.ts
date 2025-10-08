@@ -9,7 +9,10 @@ export interface IUser extends Document {
     encryptionSalt: string; // ✅ for client-side encryption
     createdAt?: Date;
     updatedAt?: Date;
-    refreshToken?: string
+    refreshToken?: string;
+    twoFactorSecret?: string;
+    twoFactorEnabled?: boolean;
+    twoFactorTempSecret?: string;
 
     comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -38,6 +41,16 @@ const userSchema: Schema<IUser> = new Schema(
         encryptionSalt: {
             type: String,
             required: true,
+        },
+        twoFactorSecret: {
+            type: String,
+        },
+        twoFactorEnabled: {
+            type: Boolean,
+            default: false,
+        },
+        twoFactorTempSecret: {
+            type: String,
         },
     },
     {

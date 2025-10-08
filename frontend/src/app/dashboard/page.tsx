@@ -18,6 +18,8 @@ interface VaultItemData {
   password: string;
   url?: string;
   notes?: string;
+  tags?: string[];
+  folder?: string;
 }
 
 export default function DashboardPage() {
@@ -36,8 +38,13 @@ export default function DashboardPage() {
     username: '',
     password: '',
     url: '',
-    notes: ''
+    notes: '',
+    tags: [] as string[],
+    folder: ''
   });
+  const [newTag, setNewTag] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState('All');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -80,7 +87,7 @@ export default function DashboardPage() {
       try {
         const response = await api.get('/vault');
         console.log('Dashboard - API test successful');
-        
+
         setUser(JSON.parse(savedUser));
         setEncryptionSalt(savedSalt);
         setMasterPassword(savedMasterPassword);
@@ -108,9 +115,9 @@ export default function DashboardPage() {
       console.log('Dashboard - Loading vault items...');
       const response = await api.get('/vault');
       console.log('Dashboard - Vault response:', response.data);
-      
+
       const encryptedItems = response.data.data || [];
-      
+
       if (encryptedItems.length === 0) {
         setVaultItems([]);
         return;
@@ -141,7 +148,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.log('Logout API call failed, but continuing with local cleanup');
     }
-    
+
     // Clear local storage
     localStorage.removeItem('user');
     localStorage.removeItem('encryptionSalt');
@@ -151,7 +158,7 @@ export default function DashboardPage() {
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    const password = Array.from({length: 16}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const password = Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
     setNewItem({ ...newItem, password });
   };
 
@@ -162,8 +169,8 @@ export default function DashboardPage() {
     try {
       const encryptedItem = EncryptionService.encryptVaultItem(newItem, masterPassword, encryptionSalt);
       await api.post('/vault', encryptedItem);
-      
-      setNewItem({ title: '', username: '', password: '', url: '', notes: '' });
+
+      setNewItem({ title: '', username: '', password: '', url: '', notes: '', tags: [], folder: '' });
       setShowAddForm(false);
       await loadVaultItems(masterPassword, encryptionSalt);
     } catch (error) {
@@ -220,7 +227,13 @@ export default function DashboardPage() {
             </h1>
           </div>
           <div className="flex items-center gap-5">
-            <span className="text-gray-600">Welcome, {user.fullName}</span>
+            <span className="text-gray-600 dark:text-gray-300">Welcome, {user.fullName}</span>
+            <button
+              onClick={() => router.push('/settings')}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm transition-colors"
+            >
+              ⚙️ Settings
+            </button>
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors"
@@ -329,7 +342,7 @@ export default function DashboardPage() {
           <h2 className="text-black mb-3 text-xl font-semibold">
             🗄️ Your Vault ({filteredItems.length} items)
           </h2>
-          
+
           {filteredItems.length === 0 ? (
             <div className="bg-white p-16 rounded-xl text-center shadow-lg">
               <span className="text-6xl block mb-5">🔒</span>

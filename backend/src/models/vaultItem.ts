@@ -7,6 +7,8 @@ export interface IVaultItem extends Document {
     password: string,
     url?: string;
     notes?: string;
+    tags?: string[];
+    folder?: string;
 }
 
 const vaultItemSchema: Schema<IVaultItem> = new Schema<IVaultItem>({
@@ -32,8 +34,16 @@ const vaultItemSchema: Schema<IVaultItem> = new Schema<IVaultItem>({
     },
     notes: {
         type: String
+    },
+    tags: [{
+        type: String,
+        trim: true,
+    }],
+    folder: {
+        type: String,
+        default: 'General',
     }
-})
+}, { timestamps: true })
 
 
 export const VaultItem: Model<IVaultItem> = mongoose.model<IVaultItem>("VaultItem", vaultItemSchema);

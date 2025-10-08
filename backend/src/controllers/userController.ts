@@ -1,9 +1,13 @@
+/// <reference path="../types/express.d.ts" />
+import { Request } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/apiError";
 import { User } from "../models/userModel";
 import { ApiResponse } from "../utils/apiResponse";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
 import crypto from "crypto";
+const speakeasy = require("speakeasy");
+const qrcode = require("qrcode");
 
 export const registerUser = asyncHandler(async (req, res) => {
     const { fullName, email, password } = req.body;
@@ -90,5 +94,142 @@ export const logoutUser = asyncHandler(async (_req, res) => {
 
     return res.status(200).json(
         new ApiResponse(200, null, "User logged out successfully")
+    );
+});
+
+// Test endpoint to check authentication
+export const testAuth = asyncHandler(async (req: Request, res) => {
+    console.log('Test Auth - Request received');
+    console.log('User from request:', req.user);
+    
+    const userId = req.user?._id;
+    
+    if (!userId) {
+        console.log('Test Auth - No user ID found');
+        throw new ApiError(401, "Unauthorized");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, { userId, user: req.user }, "Authentication working")
+    );
+});
+
+export const setupTwoFactor = asyncHandler(async (req: Request, res) => {
+    console.log('2FA Setup - Request received');
+    console.log('User from request:', req.user);
+    
+    const userId = req.user?._id;
+    
+    if (!userId) {
+        console.log('2FA Setup - No user ID found');
+        throw new ApiError(401, "Unauthorized");
+    }
+
+    console.log('2FA Setup - User ID:', userId);
+    const user = await User.findById(userId);
+    if (!user) {
+        console.log('2FA Setup - User not found in database');
+        throw new ApiError(404, "User not found");
+    }
+
+    console.log('2FA Setup - User found:', user.email);
+
+    // Generate secret
+    const secret = speakeasy.generateSecret({
+        name: `SecureVault (${user.email})`,
+        issuer: 'SecureVault'
+    });
+
+    // Generate QR code
+    const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
+
+    // Store temporary secret (not activated yet)
+    user.twoFactorTempSecret = secret.base32;
+    await user.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            secret: secret.base32,
+            qrCode: qrCodeUrl,
+            manualEntryKey: secret.base32
+        }, "2FA setup initiated")
+    );
+});
+
+export const verifyTwoFactorSetup = asyncHandler(async (req: Request, res) => {
+    const { token } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized");
+    }
+
+    if (!token) {
+        throw new ApiError(400, "Token is required");
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.twoFactorTempSecret) {
+        throw new ApiError(400, "No 2FA setup in progress");
+    }
+
+    // Verify the token
+    const verified = speakeasy.totp.verify({
+        secret: user.twoFactorTempSecret,
+        encoding: 'base32',
+        token: token,
+        window: 2
+    });
+
+    if (!verified) {
+        throw new ApiError(400, "Invalid token");
+    }
+
+    // Activate 2FA
+    user.twoFactorSecret = user.twoFactorTempSecret;
+    user.twoFactorEnabled = true;
+    user.twoFactorTempSecret = undefined;
+    await user.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, null, "2FA enabled successfully")
+    );
+});
+
+export const disableTwoFactor = asyncHandler(async (req: Request, res) => {
+    const { token } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized");
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.twoFactorEnabled) {
+        throw new ApiError(400, "2FA is not enabled");
+    }
+
+    if (token) {
+        // Verify current token before disabling
+        const verified = speakeasy.totp.verify({
+            secret: user.twoFactorSecret,
+            encoding: 'base32',
+            token: token,
+            window: 2
+        });
+
+        if (!verified) {
+            throw new ApiError(400, "Invalid token");
+        }
+    }
+
+    // Disable 2FA
+    user.twoFactorSecret = undefined;
+    user.twoFactorEnabled = false;
+    user.twoFactorTempSecret = undefined;
+    await user.save();
+
+    return res.status(200).json(
+        new ApiResponse(200, null, "2FA disabled successfully")
     );
 });

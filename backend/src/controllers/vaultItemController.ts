@@ -1,16 +1,14 @@
+/// <reference path="../types/express.d.ts" />
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/apiError";
 import { ApiResponse } from "../utils/apiResponse";
 import { VaultItem } from "../models/vaultItem";
 
-// Extend Request type for authenticated user
-interface AuthRequest extends Request {
-  user?: { _id: string };
-}
+// Using global Request type with user property
 
 // Create a new vault item
-export const createVaultItem = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const createVaultItem = asyncHandler(async (req: Request, res: Response) => {
   const { title, username, password, url, notes } = req.body;
 
   if (!req.user) throw new ApiError(401, "Unauthorized");
@@ -29,7 +27,7 @@ export const createVaultItem = asyncHandler(async (req: AuthRequest, res: Respon
 });
 
 // Get all vault items (with optional search)
-export const getVaultItems = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getVaultItems = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError(401, "Unauthorized");
 
   const { search } = req.query;
@@ -48,7 +46,7 @@ export const getVaultItems = asyncHandler(async (req: AuthRequest, res: Response
 });
 
 // Get a single vault item by ID
-export const getVaultItem = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getVaultItem = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError(401, "Unauthorized");
 
   const { id } = req.params;
@@ -60,7 +58,7 @@ export const getVaultItem = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 // Update a vault item
-export const updateVaultItem = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const updateVaultItem = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError(401, "Unauthorized");
 
   const { id } = req.params;
@@ -85,7 +83,7 @@ export const updateVaultItem = asyncHandler(async (req: AuthRequest, res: Respon
 });
 
 // Delete a vault item
-export const deleteVaultItem = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const deleteVaultItem = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new ApiError(401, "Unauthorized");
 
   const { id } = req.params;

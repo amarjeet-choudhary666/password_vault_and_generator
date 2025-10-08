@@ -58,7 +58,15 @@ const vaultItemSchema = new mongoose_1.Schema({
     },
     notes: {
         type: String
+    },
+    tags: [{
+            type: String,
+            trim: true,
+        }],
+    folder: {
+        type: String,
+        default: 'General',
     }
-});
+}, { timestamps: true });
 exports.VaultItem = mongoose_1.default.model("VaultItem", vaultItemSchema);
 //# sourceMappingURL=vaultItem.js.map

@@ -1,13 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../utils/jwt";
 import { ApiError } from "../utils/apiError";
-import { User, IUser } from "../models/userModel";
+import { User } from "../models/userModel";
 
-export interface AuthRequest extends Request {
-  user?: Partial<IUser>; // Only include necessary fields
-}
-
-export const protect = async (req: AuthRequest, _res: Response, next: NextFunction) => {
+export const protect = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     let token: string | undefined;
 

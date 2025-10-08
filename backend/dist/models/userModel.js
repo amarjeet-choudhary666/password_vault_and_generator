@@ -63,6 +63,16 @@ const userSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
+    twoFactorSecret: {
+        type: String,
+    },
+    twoFactorEnabled: {
+        type: Boolean,
+        default: false,
+    },
+    twoFactorTempSecret: {
+        type: String,
+    },
 }, {
     timestamps: true
 });

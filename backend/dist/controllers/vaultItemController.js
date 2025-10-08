@@ -5,6 +5,7 @@ const asyncHandler_1 = require("../utils/asyncHandler");
 const apiError_1 = require("../utils/apiError");
 const apiResponse_1 = require("../utils/apiResponse");
 const vaultItem_1 = require("../models/vaultItem");
+// Using global Request type with user property
 // Create a new vault item
 exports.createVaultItem = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { title, username, password, url, notes } = req.body;
